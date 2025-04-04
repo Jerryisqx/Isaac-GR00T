@@ -110,6 +110,8 @@ class Config:
 
     split_num: int = 10
 
+    num_nodes: int = 1
+
 #####################################################################################
 # main training function
 #####################################################################################
@@ -255,7 +257,7 @@ if __name__ == "__main__":
                 "torch.distributed.run",
                 "--standalone",
                 f"--nproc_per_node={config.num_gpus}",
-                "--nnodes=1",  # default to 1 node for now
+                f"--nnodes={config.num_nodes}",  # default to 1 node for now
                 str(script_path),
             ]
 
