@@ -240,12 +240,17 @@ class GR00T_N1(PreTrainedModel):
             local_model_path, local_model_path=local_model_path, **kwargs
         )
 
-        pretrained_model.backbone.set_trainable_parameters(
-            tune_visual=tune_visual, tune_llm=tune_llm
-        )
-        pretrained_model.action_head.set_trainable_parameters(
-            tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model
-        )
+        if quantization_bit is None:
+            pretrained_model.backbone.set_trainable_parameters(
+                tune_visual=tune_visual, tune_llm=tune_llm
+            )
+            pretrained_model.action_head.set_trainable_parameters(
+                tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model
+            )
+        else:
+            print("Model is quantized. Skipping setting trainable parameters")
+            for param in pretrained_model.parameters():
+                param.requires_grad = False
         return pretrained_model
 
 
