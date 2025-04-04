@@ -108,6 +108,7 @@ class Config:
     video_backend: str = "decord"
     """Video backend to use for training. [decord, torchvision_av]"""
 
+    split_num: int = 10
 
 #####################################################################################
 # main training function
@@ -131,6 +132,7 @@ def main(config: Config):
         transforms=transforms,
         embodiment_tag=embodiment_tag,  # This will override the dataset's embodiment tag to "new_embodiment"
         video_backend=config.video_backend,
+        split=config.split_num
     )
 
     # ------------ step 2: load model ------------

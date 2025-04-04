@@ -96,7 +96,7 @@ class LeRobotSingleDataset(Dataset):
         video_backend: str = "decord",
         video_backend_kwargs: dict | None = None,
         transforms: ComposedModalityTransform | None = None,
-        split: int = 300,
+        split: int | None = None,
         seed: int = 42
     ):
         """
