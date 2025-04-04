@@ -96,6 +96,8 @@ class LeRobotSingleDataset(Dataset):
         video_backend: str = "decord",
         video_backend_kwargs: dict | None = None,
         transforms: ComposedModalityTransform | None = None,
+        split: int = 300,
+        seed: int = 42
     ):
         """
         Initialize the dataset.
@@ -130,12 +132,23 @@ class LeRobotSingleDataset(Dataset):
         self._metadata = self._get_metadata(EmbodimentTag(self.tag))
         self._trajectory_ids, self._trajectory_lengths = self._get_trajectories()
         self._all_steps = self._get_all_steps()
+        self.split = split
+        self.seed = seed
+        if self.split is not None:
+            if self.split > len(self._all_steps):
+                print(f"Warning: Requested split size {self.split} is larger than dataset size {len(self._all_steps)}. Using full dataset.")
+            else:
+                rng = np.random.RandomState(self.seed)
+                selected_indices = rng.choice(len(self._all_steps), self.split, replace=False)
+                self._all_steps = [self._all_steps[i] for i in selected_indices]
+                print(f"Randomly selected {self.split} steps out of {len(self._all_steps)} total steps (seed={self.seed})")
+        
         self._modality_keys = self._get_modality_keys()
         self._delta_indices = self._get_delta_indices()
         self.set_transforms_metadata(self.metadata)
         self.set_epoch(0)
 
-        print(f"Initialized dataset {self.dataset_name} with {embodiment_tag}")
+        print(f"Initialized dataset {self.dataset_name} with {embodiment_tag} and {split}")
 
         # LeRobot-specific config
         self._lerobot_modality_meta = self._get_lerobot_modality_meta()

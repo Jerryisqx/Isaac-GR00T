@@ -105,7 +105,7 @@ def load_dataset(dataset_path: str, embodiment_tag: str, video_backend: str = "d
     print("=" * 100)
     print(f"{' Humanoid Dataset ':=^100}")
     print("=" * 100)
-
+    print(len(dataset))
     # print the 7th data point
     resp = dataset[7]
     any_describe(resp)

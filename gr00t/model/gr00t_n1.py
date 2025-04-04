@@ -21,7 +21,7 @@ import torch
 import tree
 from huggingface_hub import snapshot_download
 from huggingface_hub.errors import HFValidationError, RepositoryNotFoundError
-from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel
+from transformers import AutoConfig, AutoModel, PretrainedConfig, PreTrainedModel, BitsAndBytesConfig
 from transformers.feature_extraction_utils import BatchFeature
 
 from .action_head.flow_matching_action_head import (
@@ -202,12 +202,22 @@ class GR00T_N1(PreTrainedModel):
         tune_llm = kwargs.pop("tune_llm", False)
         tune_projector = kwargs.pop("tune_projector", True)
         tune_diffusion_model = kwargs.pop("tune_diffusion_model", True)
+        quantization_bit = kwargs.pop("quantization_bit", None)
 
         print(f"Loading pretrained dual brain from {pretrained_model_name_or_path}")
         print(f"Tune backbone vision tower: {tune_visual}")
         print(f"Tune backbone LLM: {tune_llm}")
         print(f"Tune action head projector: {tune_projector}")
         print(f"Tune action head DiT: {tune_diffusion_model}")
+        if quantization_bit:
+            print(f"Loading model with {quantization_bit}-bit quantization")
+
+        if quantization_bit == 8:
+        # Configure 8-bit quantization
+            kwargs["load_in_8bit"] = True
+        elif quantization_bit == 4:
+        # Configure 4-bit quantization
+            kwargs["load_in_4bit"] = True
 
         # get the current model path being downloaded
         try:

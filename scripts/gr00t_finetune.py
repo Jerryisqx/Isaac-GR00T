@@ -18,7 +18,6 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-
 import torch
 import tyro
 from transformers import TrainingArguments
@@ -241,8 +240,17 @@ if __name__ == "__main__":
                 del os.environ["CUDA_VISIBLE_DEVICES"]
 
             # Use subprocess.run instead of os.system
+            # cmd = [
+            #     "torchrun",
+            #     "--standalone",
+            #     f"--nproc_per_node={config.num_gpus}",
+            #     "--nnodes=1",  # default to 1 node for now
+            #     str(script_path),
+            # ]
             cmd = [
-                "torchrun",
+                "python",
+                "-m",
+                "torch.distributed.run",
                 "--standalone",
                 f"--nproc_per_node={config.num_gpus}",
                 "--nnodes=1",  # default to 1 node for now
