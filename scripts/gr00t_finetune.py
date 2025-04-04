@@ -112,6 +112,7 @@ class Config:
 
     num_nodes: int = 1
 
+    quantization_bit: int = None
 #####################################################################################
 # main training function
 #####################################################################################
@@ -144,6 +145,7 @@ def main(config: Config):
         tune_visual=config.tune_visual,  # backbone's vision tower
         tune_projector=config.tune_projector,  # action head's projector
         tune_diffusion_model=config.tune_diffusion_model,  # action head's DiT
+        quantization_bit = config.quantization_bit
     )
 
     # Set the model's compute_dtype to bfloat16
