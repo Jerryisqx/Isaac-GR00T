@@ -148,7 +148,7 @@ class LeRobotSingleDataset(Dataset):
         self.set_transforms_metadata(self.metadata)
         self.set_epoch(0)
 
-        print(f"Initialized dataset {self.dataset_name} with {embodiment_tag} and {split}")
+        print(f"Initialized dataset {self.dataset_name} with {embodiment_tag}")
 
         # LeRobot-specific config
         self._lerobot_modality_meta = self._get_lerobot_modality_meta()

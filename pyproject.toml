@@ -61,7 +61,6 @@ dependencies = [
     "tyro",
     "pytest",
     "peft",
-    "bitsandbytes"
 ]
 
 [project.optional-dependencies]
