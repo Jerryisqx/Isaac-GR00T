@@ -109,8 +109,10 @@ class Config:
     """Video backend to use for training. [decord, torchvision_av]"""
 
     split_num: int = 10
+    """Number of trajactory to split from dataset"""
 
     num_nodes: int = 1
+    """Number of Cluster Nodes to use"""
 
     quantization_bit: int = None
 #####################################################################################
