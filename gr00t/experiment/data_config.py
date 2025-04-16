@@ -154,7 +154,7 @@ class LiberoDataConfig(BaseDataConfig):
             "action.yaw",
             "action.gripper"
             ]
-    language_keys = ["annotation.human.task_description"]
+    language_keys = ["annotation.human.action.task_description"]
     observation_indices = [0]
     action_indices = list(range(16))
 
@@ -165,7 +165,7 @@ class LiberoDataConfig(BaseDataConfig):
         )
 
         state_modality = ModalityConfig(
-            default=self.observation_indices,
+            delta_indices=self.observation_indices,
             modality_keys=self.state_keys
         )
 

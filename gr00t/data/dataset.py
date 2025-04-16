@@ -452,7 +452,6 @@ class LeRobotSingleDataset(Dataset):
     def _check_integrity(self):
         """Use the config to check if the keys are valid and detect silent data corruption."""
         ERROR_MSG_HEADER = f"Error occurred in initializing dataset {self.dataset_name}:\n"
-
         for modality_config in self.modality_configs.values():
             for key in modality_config.modality_keys:
                 if key == "lapa_action" or key == "dream_actions":
@@ -770,7 +769,10 @@ class LeRobotSingleDataset(Dataset):
         if original_key is None:
             original_key = key
         for i in range(len(step_indices)):
-            task_indices.append(self.curr_traj_data[original_key][step_indices[i]].item())
+            # For Libero
+            task_indices.append(self.curr_traj_data["task_index"][step_indices].item())
+            # For other dataset un-comment this
+            # task_indices.append(self.curr_traj_data[original_key][step_indices[i]].item())
         return self.tasks.loc[task_indices]["task"].tolist()
 
     def get_data_by_modality(

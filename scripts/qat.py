@@ -17,26 +17,24 @@ from gr00t.model.gr00t_n1 import GR00T_N1
 from gr00t.utils.peft import get_lora_model
 from gr00t.model.policy import Gr00tPolicy
 
-# ---------------------------------------------------------------------
-# 量化函数和包装类定义
-# ---------------------------------------------------------------------
+
 def quantize_tensor(tensor):
-    # 计算最小值、最大值、量化比例及零点（8bit量化）
+    # Calculation of minimum, maximum, quantisation scale and zero (8bit quantisation)
     tensor_min = tensor.min()
     tensor_max = tensor.max()
     scale = (tensor_max - tensor_min) / 255.0
     zero_point = (-tensor_min / scale).round()
-    quantized = ((tensor / scale).round() + zero_point).clamp(0, 255).byte()  # 得到 torch.uint8
+    quantized = ((tensor / scale).round() + zero_point).clamp(0, 255).byte() 
     return quantized, scale, zero_point
 
-# 封装 Linear 模块，增加可学习的 scale 和 zero_point，并保存浮点权重作为参考
+# Linear Module, add learnable scale and zero_point
 class QuantizedLinear(nn.Module):
     def __init__(self, orig_linear, quantized_weight, scale, zero_point):
         super().__init__()
         self.bias = orig_linear.bias
         self.in_features = orig_linear.in_features
         self.out_features = orig_linear.out_features
-        # 量化权重保存为 buffer（不可训练），原始浮点权重也保存下来用于校准参考
+        # Quantisation weights are saved as buffer and raw floating point weights are also saved for calibration reference
         self.register_buffer("quantized_weight", quantized_weight)
         self.register_buffer("fp_weight", orig_linear.weight.data.clone())
         # 将 scale 和 zero_point 设为可学习参数（初始化为量化时计算的值）
@@ -48,7 +46,6 @@ class QuantizedLinear(nn.Module):
         dequant_weight = (self.quantized_weight.float() - self.zero_point) * self.scale
         return F.linear(x, dequant_weight, self.bias)
 
-# 封装 Conv2d 模块，做法同上
 class QuantizedConv2d(nn.Module):
     def __init__(self, orig_conv, quantized_weight, scale, zero_point):
         super().__init__()
@@ -69,7 +66,7 @@ class QuantizedConv2d(nn.Module):
         return F.conv2d(x, dequant_weight, self.bias, self.stride,
                         self.padding, self.dilation, self.groups)
 
-# 辅助函数，用于根据模块在模型中的路径替换子模块
+# Replace submodule
 def set_module_by_name(model, module_name, new_module):
     components = module_name.split('.')
     submodule = model
@@ -78,17 +75,14 @@ def set_module_by_name(model, module_name, new_module):
     setattr(submodule, components[-1], new_module)
 
 def replace_with_quantized_modules(model):
-    """
-    遍历模型，将 Linear 与 Conv2d 层替换为量化包装类
-    """
     for name, module in model.named_modules():
-        # 替换 Linear 层
+        # Replace Linear layer
         if isinstance(module, nn.Linear):
             quant_weight, scale, zero_point = quantize_tensor(module.weight.data.cpu())
             quant_module = QuantizedLinear(module, quant_weight, scale, zero_point)
             set_module_by_name(model, name, quant_module)
             print(f"Replaced Linear layer: {name}")
-        # 替换 Conv2d 层
+        # Replace Conv2d layer
         elif isinstance(module, nn.Conv2d):
             quant_weight, scale, zero_point = quantize_tensor(module.weight.data.cpu())
             quant_module = QuantizedConv2d(module, quant_weight, scale, zero_point)

@@ -108,7 +108,7 @@ class Config:
     video_backend: str = "decord"
     """Video backend to use for training. [decord, torchvision_av]"""
 
-    split_num: int = 10
+    split_num: int = None
     """Number of trajactory to split from dataset"""
 
     num_nodes: int = 1
