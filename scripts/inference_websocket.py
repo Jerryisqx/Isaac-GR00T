@@ -1,25 +1,15 @@
-# SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
-# SPDX-License-Identifier: Apache-2.0
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-# http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 import argparse
 
 import numpy as np
-
-from gr00t.eval.robot import RobotInferenceClient, RobotInferenceServer
+import os
+import sys
+# from gr00t.eval.robot import RobotInferenceClient, RobotInferenceServer
 from gr00t.experiment.data_config import DATA_CONFIG_MAP
 from gr00t.model.policy import Gr00tPolicy
+BASE = os.path.dirname(__file__)   # .../Isaac-GR00T/scripts
+LIBERO = os.path.abspath(os.path.join(BASE, "../sim/libero"))
+sys.path.insert(0, LIBERO)
+import websocket_policy_server
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -79,8 +69,9 @@ if __name__ == "__main__":
         )
 
         # Start the server
-        server = RobotInferenceServer(policy, port=args.port)
-        server.run()
+        server = websocket_policy_server.WebsocketPolicyServer(policy=policy, port=args.port, host="0.0.0.0")
+        # server = RobotInferenceServer(policy, port=args.port)
+        server.serve_forever()
 
     elif args.client:
         # In this mode, we will send a random observation to the server and get an action back
