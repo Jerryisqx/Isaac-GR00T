@@ -17,7 +17,7 @@ import json
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any, Dict, Optional, Union
-
+import logging
 import numpy as np
 import torch
 from huggingface_hub import snapshot_download
@@ -171,7 +171,6 @@ class Gr00tPolicy(BasePolicy):
         normalized_input = unsqueeze_dict_values
         # Apply transforms
         normalized_input = self.apply_transforms(observations)
-        print(normalized_input)
         normalized_action = self._get_action_from_normalized_input(normalized_input)
         unnormalized_action = self._get_unnormalized_action(normalized_action)
 

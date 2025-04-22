@@ -18,6 +18,18 @@ import cv2
 LIBERO_DUMMY_ACTION = [0.0] * 6 + [-1.0]
 LIBERO_ENV_RESOLUTION = 256  # resolution used to render training data
 
+def unchunk(action_chunk, action_plan):
+    lengths = [v.shape[0] for v in action_chunk.values()]
+    if len(set(lengths)) != 1:
+        raise ValueError(f"Inconsistent lengths: {lengths}")
+    T = lengths[0]
+
+    keys = list(action_chunk.keys())
+    for t in range(T):
+        # 从每个 array 取出索引 t 的标量，然后在 axis=0 上拼成 (D,) 的 ndarray
+        new_arr = np.stack([action_chunk[k][t] for k in keys], axis=0)
+        action_plan.append(new_arr)
+
 
 @dataclasses.dataclass
 class Args:
@@ -27,7 +39,7 @@ class Args:
     host: str = "0.0.0.0"
     port: int = 8000
     resize_size: int = 224
-    replan_steps: int = 5
+    replan_steps: int = 16
 
     #################################################################################################################
     # LIBERO environment-specific parameters
@@ -36,12 +48,12 @@ class Args:
         "libero_spatial"  # Task suite. Options: libero_spatial, libero_object, libero_goal, libero_10, libero_90
     )
     num_steps_wait: int = 10  # Number of steps to wait for objects to stabilize i n sim
-    num_trials_per_task: int = 50  # Number of rollouts per task
+    num_trials_per_task: int = 5  # Number of rollouts per task
 
     #################################################################################################################
     # Utils
     #################################################################################################################
-    video_out_path: str = "data/libero/videos"  # Path to save videos
+    video_out_path: str = "data/libero/spatial"  # Path to save videos
 
     seed: int = 7  # Random Seed (for reproducibility)
 
@@ -125,31 +137,47 @@ def eval_libero(args: Args) -> None:
                     # Save preprocessed image for replay video
                     replay_images.append(img)
 
+                    # img = np.expand_dims(img, axis=0)
+                    # wrist_image = np.expand_dims(wrist_img, axis=0)
+                    img = img[np.newaxis, ...]       # -> (1, 1, H, W, C)
+                    wrist_img = wrist_img[np.newaxis, ...]  # -> (1, 1, H, W, C)
                     if not action_plan:
                         # Finished executing previous action chunk -- compute new chunk
                         # Prepare observations dict
-                        element = {
-                            "video.image": img,
-                            "video.wrist_image": wrist_img,
-                            "state": np.concatenate(
+                        state = np.concatenate(
                                 (
                                     obs["robot0_eef_pos"],
                                     _quat2axisangle(obs["robot0_eef_quat"]),
                                     obs["robot0_gripper_qpos"],
                                 )
-                            ),
+                            )
+                        state = state[np.newaxis, :]
+                        element = {
+                            "video.image": img,
+                            "video.wrist_image": wrist_img,
+                            "state": state,
                             "prompt": str(task_description),
                         }
 
                         # Query model to get action
-                        action_chunk = client.infer(element)["actions"]
-                        assert (
-                            len(action_chunk) >= args.replan_steps
-                        ), f"We want to replan every {args.replan_steps} steps, but policy only predicts {len(action_chunk)} steps."
-                        action_plan.extend(action_chunk[: args.replan_steps])
+                        # action_chunk = client.infer(element)["actions"]
+                        action_chunk = client.infer(element)
+                        # assert (
+                        #     len(action_chunk) >= args.replan_steps
+                        # ), f"We want to replan every {args.replan_steps} steps, but policy only predicts {len(action_chunk)} steps."
+                        # chunk_lengths = [arr.shape[0] for arr in action_chunk.values()]
+                        # Time = chunk_lengths[0]
+                        # print("Time: ", Time)
+                        # for time in range(Time):
+                        #     step = [action_chunk[k][t] for k in action_chunk.keys()]
+                        #     action_plan.append(step)
+                        # action_plan.append(action_chunk[k] for k in action_chunk.keys())
+                        unchunk(action_chunk, action_plan)
 
+                    # print("action plan: ", action_plan)
                     action = action_plan.popleft()
-
+                    # print("action: ", type(action))
+                    # print("list action: ", action.tolist())
                     # Execute action in environment
                     obs, reward, done, info = env.step(action.tolist())
                     if done:
