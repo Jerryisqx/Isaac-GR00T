@@ -18,16 +18,21 @@ import cv2
 LIBERO_DUMMY_ACTION = [0.0] * 6 + [-1.0]
 LIBERO_ENV_RESOLUTION = 256  # resolution used to render training data
 
-def unchunk(action_chunk, action_plan):
+def unchunk(action_chunk, action_plan, replan_steps):
     lengths = [v.shape[0] for v in action_chunk.values()]
     if len(set(lengths)) != 1:
         raise ValueError(f"Inconsistent lengths: {lengths}")
-    T = lengths[0]
+    assert (
+        lengths[0] >= replan_steps
+    ), f"We want to replan every {args.replan_steps} steps, but policy only predicts {len(action_chunk)} steps."
+    # T = lengths[0]
+    T = replan_steps
 
     keys = list(action_chunk.keys())
     for t in range(T):
         # 从每个 array 取出索引 t 的标量，然后在 axis=0 上拼成 (D,) 的 ndarray
         new_arr = np.stack([action_chunk[k][t] for k in keys], axis=0)
+        # new_arr[-1] = -new_arr[-1]
         action_plan.append(new_arr)
 
 
@@ -53,7 +58,7 @@ class Args:
     #################################################################################################################
     # Utils
     #################################################################################################################
-    video_out_path: str = "data/libero/spatial"  # Path to save videos
+    video_out_path: str = "data/libero/spatial/100k_lora_64_16step"  # Path to save videos
 
     seed: int = 7  # Random Seed (for reproducibility)
 
@@ -126,7 +131,8 @@ def eval_libero(args: Args) -> None:
                     # Get preprocessed image
                     # IMPORTANT: rotate 180 degrees to match train preprocessing
                     img = np.ascontiguousarray(obs["agentview_image"][::-1, ::-1])
-                    wrist_img = np.ascontiguousarray(obs["robot0_eye_in_hand_image"][::-1, ::-1])
+                    # wrist_img = np.ascontiguousarray(obs["robot0_eye_in_hand_image"][::-1, ::-1])
+                    wrist_img = np.ascontiguousarray(obs["robot0_eye_in_hand_image"])
                     img = image_tools.convert_to_uint8(
                         image_tools.resize_with_pad(img, args.resize_size, args.resize_size)
                     )
@@ -172,7 +178,7 @@ def eval_libero(args: Args) -> None:
                         #     step = [action_chunk[k][t] for k in action_chunk.keys()]
                         #     action_plan.append(step)
                         # action_plan.append(action_chunk[k] for k in action_chunk.keys())
-                        unchunk(action_chunk, action_plan)
+                        unchunk(action_chunk, action_plan, args.replan_steps)
 
                     # print("action plan: ", action_plan)
                     action = action_plan.popleft()
