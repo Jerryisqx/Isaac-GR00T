@@ -44,7 +44,59 @@ class BaseDataConfig(ABC):
 
 
 ###########################################################################################
+class LiberoDataConfig(BaseDataConfig):
+    video_keys = ["video.image", "video.wrist_image"]
+    state_keys = [
+            "state.x",
+            "state.y",
+            "state.z",
+            "state.roll",
+            "state.pitch",
+            "state.yaw",
+            "state.gripper"
+            ]
+    action_keys = [
+            "action.x",
+            "action.y",
+            "action.z",
+            "action.roll",
+            "action.pitch",
+            "action.yaw",
+            "action.gripper"
+            ]
+    language_keys = ["annotation.human.action.task_description"]
+    observation_indices = [0]
+    action_indices = list(range(16))
 
+    def modality_config(self) -> dict[str, ModalityConfig]:
+        video_modality = ModalityConfig(
+            delta_indices=self.observation_indices,
+            modality_keys=self.video_keys,
+        )
+
+        state_modality = ModalityConfig(
+            delta_indices=self.observation_indices,
+            modality_keys=self.state_keys
+        )
+
+        action_modality = ModalityConfig(
+            delta_indices=self.action_indices,
+            modality_keys=self.action_keys,
+        )
+
+        language_modality = ModalityConfig(
+            delta_indices=self.observation_indices,
+            modality_keys=self.language_keys,
+        )
+
+        modality_configs = {
+            "video": video_modality,
+            "state": state_modality,
+            "action": action_modality,
+            "language": language_modality,
+        }
+
+        return modality_configs
 
 class Gr1ArmsOnlyDataConfig(BaseDataConfig):
     video_keys = ["video.ego_view"]
@@ -682,4 +734,5 @@ DATA_CONFIG_MAP = {
     "bimanual_panda_hand": BimanualPandaHandDataConfig(),
     "single_panda_gripper": SinglePandaGripperDataConfig(),
     "so100": So100DataConfig(),
+    "libero": LiberoDataConfig()
 }

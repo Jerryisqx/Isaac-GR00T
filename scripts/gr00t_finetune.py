@@ -109,6 +109,9 @@ class Config:
     video_backend: str = "decord"
     """Video backend to use for training. [decord, torchvision_av]"""
 
+    num_nodes: int = 1
+    """Number of Cluster Nodes to use"""
+
 
 #####################################################################################
 # main training function
@@ -245,9 +248,18 @@ if __name__ == "__main__":
                 "torchrun",
                 "--standalone",
                 f"--nproc_per_node={config.num_gpus}",
-                "--nnodes=1",  # default to 1 node for now
+                f"--nnodes={config.num_nodes}",  # default to 1 node for now
                 str(script_path),
             ]
+            # cmd = [
+            #     "python",
+            #     "-m",
+            #     "torch.distributed.run",
+            #     "--standalone",
+            #     f"--nproc_per_node={config.num_gpus}",
+            #     f"--nnodes={config.num_nodes}",  # default to 1 node for now
+            #     str(script_path),
+            # ]
 
             # Convert config to command line arguments
             for key, value in vars(config).items():
