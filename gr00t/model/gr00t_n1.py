@@ -222,7 +222,7 @@ class GR00T_N1(PreTrainedModel):
             local_model_path = pretrained_model_name_or_path
 
         pretrained_model = super().from_pretrained(
-            local_model_path, local_model_path=local_model_path, **kwargs
+            local_model_path, local_model_path=local_model_path, torch_dtype=torch.bfloat16, **kwargs
         )
 
         pretrained_model.backbone.set_trainable_parameters(
