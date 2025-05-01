@@ -257,7 +257,15 @@ class FlowmatchingActionHead(nn.Module):
                 self.model.eval()
 
     def sample_time(self, batch_size, device, dtype):
-        sample = self.beta_dist.sample([batch_size]).to(device, dtype=dtype)
+        # Concentration to float32 for now, cast back to bfloat16 after sampling.
+        alpha = self.beta_dist.concentration1
+        beta  = self.beta_dist.concentration0
+        alpha_fp32 = alpha.to(device=device, dtype=torch.float32)
+        beta_fp32  = beta.to(device=device, dtype=torch.float32)
+        beta_fp32_dist  = torch.distributions.Beta(alpha_fp32, beta_fp32)
+        sample = beta_fp32_dist.sample([batch_size]).to(device, dtype=dtype)
+        # Using beta_dist.sample directly will crash on bfloat16.
+        # sample = self.beta_dist.sample([batch_size]).to(device, dtype=dtype)
         return (self.config.noise_s - sample) / self.config.noise_s
 
     def prepare_input(self, batch: dict) -> BatchFeature:
