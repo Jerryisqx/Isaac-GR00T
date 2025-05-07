@@ -231,7 +231,7 @@ class Gr00tPolicy(BasePolicy):
         return True
 
     def _load_model(self, model_path):
-        model = GR00T_N1.from_pretrained(model_path, torch_dtype=COMPUTE_DTYPE)
+        model = GR00T_N1.from_pretrained(model_path)
         model.eval()  # Set model to eval mode
         model.to(device=self.device)  # type: ignore
 
