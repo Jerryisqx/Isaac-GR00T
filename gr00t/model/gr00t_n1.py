@@ -30,6 +30,8 @@ from .action_head.flow_matching_action_head import (
 )
 from .backbone import EagleBackbone
 
+from peft import prepare_model_for_kbit_training
+
 BACKBONE_FEATURE_KEY = "backbone_features"
 ACTION_KEY = "action_pred"
 LOSS_KEY = "loss"
@@ -48,7 +50,7 @@ class GR00T_N1Config(PretrainedConfig):
     action_horizon: int = field(init=False, metadata={"help": "Action horizon."})
 
     action_dim: int = field(init=False, metadata={"help": "Action dimension."})
-    compute_dtype: str = field(default="float32", metadata={"help": "Compute dtype."})
+    compute_dtype: str = field(default="bfloat16", metadata={"help": "Compute dtype."})
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -205,15 +207,17 @@ class GR00T_N1(PreTrainedModel):
         quantization_bit = kwargs.pop("quantization_bit", None)
         
         if quantization_bit == 8:
-            kwargs["quantization_config"] = BitsAndBytesConfig(
+            quantization_config = BitsAndBytesConfig(
                 load_in_8bit=True,
-                llm_int8_enable_fp32_cpu_load=True,
+                llm_int8_has_fp16_weight=True
             )
             print(f"Using 8-bit quantization")
         elif quantization_bit == 4:
-            kwargs["quantization_config"] = BitsAndBytesConfig(
+            quantization_config = BitsAndBytesConfig(
                 load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.bfloat16
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_quant_storage=torch.bfloat16
             )
             print(f"Using 4-bit quantization")
 
@@ -236,21 +240,23 @@ class GR00T_N1(PreTrainedModel):
             )
             local_model_path = pretrained_model_name_or_path
 
-        pretrained_model = super().from_pretrained(
-            local_model_path, local_model_path=local_model_path, **kwargs
-        )
-
-        if quantization_bit is None:
-            pretrained_model.backbone.set_trainable_parameters(
-                tune_visual=tune_visual, tune_llm=tune_llm
-            )
-            pretrained_model.action_head.set_trainable_parameters(
-                tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model
+        if quantization_bit != None:
+            print("Loading with QLora")
+            pretrained_model = super().from_pretrained(
+                local_model_path, local_model_path=local_model_path, compute_dtype=torch.bfloat16, quantization_config=quantization_config, **kwargs
             )
         else:
-            print("Model is quantized. Skipping setting trainable parameters")
-            for param in pretrained_model.parameters():
-                param.requires_grad = False
+            print("Loading without QLora")
+            pretrained_model = super().from_pretrained(
+                local_model_path, local_model_path=local_model_path, compute_dtype=torch.bfloat16, **kwargs
+            )
+
+        pretrained_model.backbone.set_trainable_parameters(
+            tune_visual=tune_visual, tune_llm=tune_llm
+        )
+        pretrained_model.action_head.set_trainable_parameters(
+            tune_projector=tune_projector, tune_diffusion_model=tune_diffusion_model
+        )
         return pretrained_model
 
 
