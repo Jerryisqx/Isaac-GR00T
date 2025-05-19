@@ -162,9 +162,14 @@ class EagleBackbone(nn.Module):
         self.tune_visual = tune_visual
         if not tune_llm:
             self.model.language_model.requires_grad_(False)
+        else:
+            self.model.language_model.requires_grad_(True)
         if not tune_visual:
             self.model.vision_model.requires_grad_(False)
             self.model.mlp1.requires_grad_(False)
+        else:
+            self.model.vision_model.requires_grad_(True)
+            self.model.mlp1.requires_grad_(True)
 
     def set_frozen_modules_to_eval_mode(self):
         if self.training:
