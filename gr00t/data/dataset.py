@@ -756,8 +756,7 @@ class LeRobotSingleDataset(Dataset):
         if original_key is None:
             original_key = key
         for i in range(len(step_indices)):
-            # task_indices.append(self.curr_traj_data[original_key][step_indices[i]].item())
-            task_indices.append(self.curr_traj_data["task_index"][step_indices].item())
+            task_indices.append(self.curr_traj_data[original_key][step_indices[i]].item())
         return self.tasks.loc[task_indices]["task"].tolist()
 
     def get_data_by_modality(
