@@ -18,7 +18,7 @@ import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import List, Literal
+from typing import List, Literal, Optional
 
 import torch
 import tyro
@@ -122,6 +122,9 @@ class ArgsConfig:
     balance_trajectory_weights: bool = True
     """Used in LeRobotMixtureDataset. If True, sample trajectories within a dataset weighted by their length; otherwise, equal weighting."""
 
+    gd_acc: int = 1
+
+    split: Optional[int] = None
 
 #####################################################################################
 # main training function
@@ -146,6 +149,7 @@ def main(config: ArgsConfig):
             transforms=transforms,
             embodiment_tag=embodiment_tag,  # This will override the dataset's embodiment tag to "new_embodiment"
             video_backend=config.video_backend,
+            split=config.split
         )
     else:
         single_datasets = []
@@ -209,7 +213,7 @@ def main(config: ArgsConfig):
         bf16=True,
         tf32=True,
         per_device_train_batch_size=config.batch_size,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=config.gd_acc,
         dataloader_num_workers=config.dataloader_num_workers,
         dataloader_pin_memory=False,
         dataloader_persistent_workers=config.dataloader_num_workers > 0,

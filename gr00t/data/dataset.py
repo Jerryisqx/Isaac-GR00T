@@ -109,6 +109,8 @@ class LeRobotSingleDataset(Dataset):
         video_backend: str = "decord",
         video_backend_kwargs: dict | None = None,
         transforms: ComposedModalityTransform | None = None,
+        split: int | None = None,
+        seed: int = 42
     ):
         """
         Initialize the dataset.
@@ -142,6 +144,18 @@ class LeRobotSingleDataset(Dataset):
 
         self._metadata = self._get_metadata(EmbodimentTag(self.tag))
         self._trajectory_ids, self._trajectory_lengths = self._get_trajectories()
+        self.split = split
+        self.seed = seed
+        if self.split is not None:
+            if self.split > len(self._trajectory_lengths):
+                print(f"Warning: Requested split size {self.split} is larger than dataset size {len(self._trajectory_lengths)}. Using full dataset.")
+            else:
+                rng = np.random.RandomState(self.seed)
+                assert len(self._trajectory_ids) == len(self._trajectory_lengths), "Trajactory id and length are not the same!"
+                selected_indices = rng.choice(len(self._trajectory_lengths), self.split, replace=False)
+                self._trajectory_ids = [self._trajectory_ids[i] for i in selected_indices]
+                self._trajectory_lengths = [self._trajectory_lengths[i] for i in selected_indices]
+                print(f"Randomly selected {self.split} steps (seed={self.seed})")
         self._all_steps = self._get_all_steps()
         self._modality_keys = self._get_modality_keys()
         self._delta_indices = self._get_delta_indices()
