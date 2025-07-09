@@ -29,6 +29,8 @@ from gr00t.experiment.data_config import DATA_CONFIG_MAP
 from gr00t.experiment.runner import TrainRunner
 from gr00t.model.gr00t_n1 import GR00T_N1
 from gr00t.utils.peft import get_lora_model
+# from bitnet import BitLinear
+# import torch.nn as nn
 
 
 @dataclass
@@ -112,6 +114,11 @@ class Config:
     num_nodes: int = 1
     """Number of Cluster Nodes to use"""
 
+    gd_acc: int = 1
+
+    bit_llm: bool = False
+
+    split: int = None
 
 #####################################################################################
 # main training function
@@ -135,7 +142,9 @@ def main(config: Config):
         transforms=transforms,
         embodiment_tag=embodiment_tag,  # This will override the dataset's embodiment tag to "new_embodiment"
         video_backend=config.video_backend,
+        split=config.split
     )
+    print(len(train_dataset))
 
     # ------------ step 2: load model ------------
     model = GR00T_N1.from_pretrained(
@@ -158,6 +167,26 @@ def main(config: Config):
             lora_dropout=config.lora_dropout,
         )
 
+    # if config.bit_llm:
+    #     print("Replace LLM with bit linear")
+    #     llm = model.backbone.model.language_model
+    #     def replace_linear_with_bit(model, skip_modules=()):
+    #         for name, child in list(model.named_children()):
+    #             replace_linear_with_bit(child, skip_modules)
+
+    #             if isinstance(child, nn.Linear) and name not in skip_modules:
+    #                 in_f, out_f = child.in_features, child.out_features
+    #                 bias = child.bias is not None
+    #                 bitlinear = BitLinear(in_f, out_f, bias=bias)
+    #                 bitlinear.weight.data.copy_(child.weight.data.clone())
+    #                 if bias:
+    #                     bitlinear.bias.data.copy_(child.bias.data.clone())
+    #                 setattr(model, name, bitlinear)
+    #     replace_linear_with_bit(llm)
+    #     torch.cuda.empty_cache()
+    #     torch.cuda.ipc_collect()
+    #     model.backbone.model.language_model = llm
+
     # 2.1 modify training args
     training_args = TrainingArguments(
         output_dir=config.output_dir,
@@ -168,7 +197,7 @@ def main(config: Config):
         bf16=True,
         tf32=True,
         per_device_train_batch_size=config.batch_size,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=config.gd_acc,
         dataloader_num_workers=config.dataloader_num_workers,
         dataloader_pin_memory=False,
         dataloader_persistent_workers=True,
